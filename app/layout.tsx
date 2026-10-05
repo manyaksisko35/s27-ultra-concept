@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Samsung Galaxy S27 Ultra | The New Era',
-  description: 'Beyond Titanium. 240Hz OLED, 32GB RAM.',
+  title: 'Samsung Galaxy S26 Ultra | The New Standard',
+  description: 'Built with Titanium and Snapdragon 8 Gen 5.',
 };
 
 export default function RootLayout({

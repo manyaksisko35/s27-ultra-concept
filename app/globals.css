@@ -1,1 +1,75 @@
 @import "tailwindcss";
+
+:root {
+  --bg: #12141c;
+  --surface: #1b1f2b;
+  --line: #2c3243;
+  --text: #eceef4;
+  --muted: #9aa0b2;
+  --accent: #a9c1ff;
+  --warn: #f2c48d;
+}
+
+html { scroll-behavior: smooth; scroll-padding-top: 4.5rem; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body), system-ui, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.nav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.9rem clamp(1rem, 5vw, 4rem);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.nav nav { display: flex; gap: 1.25rem; font-size: 0.95rem; color: var(--muted); }
+.nav nav a:hover { color: var(--text); }
+.brand { font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 1.1rem; }
+
+.hero, .sec, .foot { max-width: 68rem; margin: 0 auto; padding-inline: clamp(1rem, 5vw, 2rem); }
+.hero { padding-block: clamp(3rem, 9vw, 7rem) 3rem; text-align: center; }
+.sec { padding-block: clamp(3rem, 7vw, 5.5rem); border-top: 1px solid var(--line); }
+
+h1, h2, h3, .big, .num { font-family: var(--font-display), sans-serif; letter-spacing: -0.02em; }
+h1 { font-size: clamp(2.8rem, 9vw, 6.5rem); line-height: 1; font-weight: 800; margin: 1rem 0; }
+h2 { font-size: clamp(1.8rem, 4.5vw, 3rem); line-height: 1.1; font-weight: 700; margin-bottom: 1rem; max-width: 22ch; }
+h3 { font-size: 1.15rem; font-weight: 600; }
+.tag { color: var(--accent); font-size: 0.95rem; }
+.lead { color: var(--muted); font-size: 1.1rem; max-width: 60ch; margin-top: 0.5rem; }
+.hero .lead { margin-inline: auto; }
+.muted { color: var(--muted); font-size: 0.95rem; }
+
+
+.dims, .lens-grid, .power { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); margin-block: 2rem; }
+.dim, .lens-card { padding-block: 1.25rem; border-top: 2px solid var(--accent); }
+.num { font-size: 1.8rem; font-weight: 700; }
+.big { font-size: clamp(2.4rem, 6vw, 3.8rem); font-weight: 800; color: var(--accent); line-height: 1.05; }
+.lens-card p:last-child { color: var(--muted); margin-top: 0.4rem; }
+
+.table-wrap { overflow-x: auto; margin-top: 2rem; border: 1px solid var(--line); border-radius: 0.75rem; }
+table { width: 100%; border-collapse: collapse; min-width: 34rem; background: var(--surface); }
+th, td { padding: 0.85rem 1.1rem; text-align: left; border-bottom: 1px solid var(--line); }
+thead th { color: var(--muted); font-weight: 500; font-size: 0.9rem; }
+tbody th { font-weight: 600; width: 30%; }
+tbody tr:last-child > * { border-bottom: 0; }
+.pill { display: inline-block; padding: 0.15rem 0.7rem; border-radius: 999px; font-size: 0.85rem; border: 1px solid var(--line); color: var(--muted); }
+.pill.ok { color: var(--accent); border-color: var(--accent); }
+.pill.warn { color: var(--warn); border-color: var(--warn); }
+
+.foot { padding-block: 2.5rem 4rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+
+@media (max-width: 40rem) { .nav nav { gap: 0.8rem; font-size: 0.85rem; } .brand { display: none; } .nav { justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .lens { animation: none; } }
+
+.stage { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.hero, .sec, .foot { position: relative; z-index: 1; }
+.hero { min-height: 100svh; }
+.sec.scene { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; }
+@media (min-width: 48rem) { .scene > * { max-width: 30rem; } .hero .lead { max-width: 36rem; } }
+@media (max-width: 47.99rem) { .stage { opacity: 0.45; } }
