@@ -79,10 +79,10 @@ function RealPhoneModel() {
     // Mobil: telefon üstte, yazı altta. Değerler başlangıç tahmini, ince ayar gerekir.
     mm.add('(max-width: 767px)', () => {
       build({
-        hero: { pos: [0, 0.4, 0], rot: [-1, 0, 0], s: 7 },
-        s2: { pos: [0, 1.8, 0], rot: [0, 2.7, 0], s: 4 },
+        hero: { pos: [0, 0.3, 0], rot: [-1, 0, 0], s: 5 },
+        s2: { pos: [0, 2.25, 0], rot: [0, 2.7, 0], s: 2.6 },
         s3: { pos: [0, 1.8, 0], rot: [0.2, 0.4, 0.02], s: 3.6 },
-        s4: { pos: [0, 1.6, 1], rot: [0, 3.5, 0], s: 5 },
+        s4: { pos: [0, 0.5, 1], rot: [0, 3.5, 0], s: 5.5 },
       });
     });
 
