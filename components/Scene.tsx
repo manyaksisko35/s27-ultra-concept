@@ -2,7 +2,7 @@
 
 import { Canvas, useThree } from '@react-three/fiber';
 import { useGLTF, ContactShadows, Float } from '@react-three/drei';
-import { useRef, useEffect, Suspense } from 'react';
+import { useRef, useEffect, useMemo, Suspense } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -16,6 +16,11 @@ function RealPhoneModel() {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF('/model/phone.glb');
   const { camera } = useThree();
+  const dims = useMemo(() => {
+    scene.updateMatrixWorld(true);
+    const b = new THREE.Box3().setFromObject(scene);
+    return { size: b.getSize(new THREE.Vector3()), center: b.getCenter(new THREE.Vector3()) };
+  }, [scene]);
 
   // Smooth scroll (Lenis) <-> ScrollTrigger senkronu
   useEffect(() => {
@@ -78,11 +83,31 @@ function RealPhoneModel() {
 
     // Mobil: telefon üstte, yazı altta. Değerler başlangıç tahmini, ince ayar gerekir.
     mm.add('(max-width: 767px)', () => {
+      const fov = THREE.MathUtils.degToRad((camera as THREE.PerspectiveCamera).fov);
+      const CAM_Y = -2; // Canvas'taki başlangıç kamera yüksekliği (4. ekranda 0'a iner)
+
+      // heightFrac: telefonun ekran yüksekliğine oranı
+      // centerFromTop: telefonun merkezinin ekranın üstünden uzaklığı (0 = en üst, 1 = en alt)
+      const fit = (
+        heightFrac: number,
+        centerFromTop: number,
+        z: number,
+        rot: [number, number, number],
+        camY: number
+      ): Pose => {
+        const visH = 2 * (camera.position.z - z) * Math.tan(fov / 2);
+        const s = (heightFrac * visH) / dims.size.y;
+        const target = new THREE.Vector3(0, camY + (0.5 - centerFromTop) * visH, z);
+        const offset = dims.center.clone().multiplyScalar(s).applyEuler(new THREE.Euler(...rot));
+        const p = target.sub(offset);
+        return { pos: [p.x, p.y, p.z], rot, s };
+      };
+
       build({
         hero: { pos: [0, 0.3, 0], rot: [-1, 0, 0], s: 5 },
-        s2: { pos: [0, 1.95, 0], rot: [0, 2.7, 0], s: 2.9 },
-        s3: { pos: [0, 1.5, 0], rot: [0.2, 0.4, 0.02], s: 3.6 },
-        s4: { pos: [0, 1.45, 1], rot: [0, 3.5, 0], s: 3.4 },
+        s2: fit(0.32, 0.27, 0, [0, 2.7, 0], CAM_Y),
+        s3: fit(0.36, 0.29, 0, [0.2, 0.4, 0.02], CAM_Y),
+        s4: fit(0.38, 0.31, 1, [0, 3.5, 0], 0),
       });
     });
 
