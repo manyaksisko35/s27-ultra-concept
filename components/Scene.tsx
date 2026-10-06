@@ -1,8 +1,8 @@
 'use client';
 
 import { Canvas, useThree } from '@react-three/fiber';
-import { useGLTF, ContactShadows, Float } from '@react-three/drei';
-import { useRef, useEffect, useMemo, Suspense } from 'react';
+import { useGLTF, ContactShadows, Float, PerformanceMonitor } from '@react-three/drei';
+import { useRef, useEffect, useMemo, useState, Suspense } from 'react';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -11,15 +11,33 @@ import Lenis from 'lenis';
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
+useGLTF.setDecoderPath('/draco/');
 
 function RealPhoneModel() {
   const groupRef = useRef<THREE.Group>(null);
-  const { scene } = useGLTF('/model/phone.glb');
+  const { scene } = useGLTF('/model/phone-opt.glb');
   const { camera } = useThree();
+
+  // Modelin gerçek boyutu ve merkezi (mobilde yüzdeyle yerleştirmek için)
   const dims = useMemo(() => {
     scene.updateMatrixWorld(true);
     const b = new THREE.Box3().setFromObject(scene);
     return { size: b.getSize(new THREE.Vector3()), center: b.getCenter(new THREE.Vector3()) };
+  }, [scene]);
+
+  // Gereksiz gölge işlerini kapat, dokuları hafif keskinleştir
+  useEffect(() => {
+    scene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      m.castShadow = false;
+      m.receiveShadow = false;
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      mats.forEach((mat) => {
+        const map = (mat as THREE.MeshStandardMaterial)?.map;
+        if (map) map.anisotropy = 4;
+      });
+    });
   }, [scene]);
 
   // Smooth scroll (Lenis) <-> ScrollTrigger senkronu
@@ -35,7 +53,7 @@ function RealPhoneModel() {
     };
   }, []);
 
-    useGSAP(() => {
+  useGSAP(() => {
     const g = groupRef.current;
     if (!g) return;
 
@@ -81,7 +99,7 @@ function RealPhoneModel() {
       });
     });
 
-    // Mobil: telefon üstte, yazı altta. Değerler başlangıç tahmini, ince ayar gerekir.
+    // Mobil: telefonu ekranın yüzdesine göre yerleştir
     mm.add('(max-width: 767px)', () => {
       const fov = THREE.MathUtils.degToRad((camera as THREE.PerspectiveCamera).fov);
       const CAM_Y = -2; // Canvas'taki başlangıç kamera yüksekliği (4. ekranda 0'a iner)
@@ -123,16 +141,23 @@ function RealPhoneModel() {
   );
 }
 
-useGLTF.preload('/model/phone.glb');
+useGLTF.preload('/model/phone-opt.glb');
 
 export default function Scene() {
+  const [dpr, setDpr] = useState(1.25);
+
   return (
     <Canvas
       camera={{ position: [0, -2, 9], fov: 45 }}
-      dpr={[1, 1.5]}
+      dpr={dpr}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: true }}
       style={{ width: '100%', height: '100%', position: 'fixed', top: 0, left: 0, pointerEvents: 'none' }}
     >
+      {/* Cihaz yavaşlarsa çözünürlüğü düşürür, güçlüyse yükseltir */}
+      <PerformanceMonitor
+        onDecline={() => setDpr(1)}
+        onIncline={() => setDpr(Math.min(window.devicePixelRatio, 1.75))}
+      />
       <Suspense fallback={null}>
         <ambientLight intensity={2.5} />
         <directionalLight position={[5, 5, 5]} intensity={4.5} color="#ffffff" />

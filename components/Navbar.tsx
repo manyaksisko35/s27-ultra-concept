@@ -7,7 +7,7 @@ export default function Navbar() {
   const links = ['Overview', 'Performance', 'Camera', 'Specs'];
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 h-16 px-5 md:px-12 flex items-center justify-between bg-black/40 backdrop-blur-xl border-b border-white/10">
+    <header className="fixed top-0 inset-x-0 z-50 h-16 px-5 md:px-12 flex items-center justify-between bg-black/70 md:bg-black/40 md:backdrop-blur-xl border-b border-white/10">
       <span className="text-base md:text-lg font-semibold tracking-[0.3em] md:tracking-[0.35em]">SAMSUNG</span>
 
       <nav className="hidden md:flex gap-10 text-sm text-white/65">
