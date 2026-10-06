@@ -2,8 +2,8 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Samsung Galaxy S26 Ultra | Titanium Evolution',
-  description: 'Awwwards-grade 3D Interactive Concept Experience',
+  title: 'Samsung Galaxy S26 Ultra | Galaxy AI',
+  description: 'Galaxy S26 Ultra interactive 3D concept experience',
 };
 
 export default function RootLayout({

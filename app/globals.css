@@ -1,5 +1,5 @@
 /* 1. Önce dışarıdan gelen her şey (Fontlar ve Tailwind) en tepeye eklenir */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;700&display=swap');
 @import "tailwindcss";
 
 /* 2. Varsa senin indirdiğin yerel font (Samsung Sharp Sans) tanıtılır */
@@ -37,3 +37,56 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
 }
+
+/* ---- Samsung tarzı yardımcı sınıflar ---- */
+.sg-eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sg-title {
+  font-weight: 200;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+.sg-title strong { font-weight: 600; }
+
+/* Galaxy AI gradient yazı */
+.sg-ai {
+  background: linear-gradient(90deg, #7dd3fc 0%, #a78bfa 55%, #f0abfc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sg-card {
+  background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 28px;
+  backdrop-filter: blur(18px);
+  transition: border-color 0.4s ease, transform 0.4s ease;
+}
+.sg-card:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-4px);
+}
+
+.sg-btn {
+  display: inline-block;
+  padding: 0.85rem 2rem;
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+.sg-btn:hover { transform: scale(1.05); background: #e5e5e5; }
+.sg-btn--ghost {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.sg-btn--ghost:hover { background: rgba(255, 255, 255, 0.1); }

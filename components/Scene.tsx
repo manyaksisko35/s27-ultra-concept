@@ -10,6 +10,7 @@ import { useGSAP } from '@gsap/react';
 import Lenis from 'lenis';
 
 gsap.registerPlugin(ScrollTrigger);
+ScrollTrigger.config({ ignoreMobileResize: true });
 
 function RealPhoneModel() {
   const groupRef = useRef<THREE.Group>(null);
@@ -29,49 +30,63 @@ function RealPhoneModel() {
     };
   }, []);
 
-  useGSAP(() => {
+    useGSAP(() => {
     const g = groupRef.current;
     if (!g) return;
 
-    // Başlangıç değerleri timeline'dan ÖNCE
-    gsap.set(g.position, { x: 0.2, y: 0.6, z: 1 });
-    gsap.set(g.rotation, { x: -1, y: 0, z: 0 });
-    gsap.set(g.scale, { x: 12, y: 12, z: 12 });
+    type Pose = { pos: [number, number, number]; rot: [number, number, number]; s: number };
 
-    const tl = gsap.timeline({
-      defaults: { duration: 1, ease: 'power2.inOut' },
-      scrollTrigger: {
-        trigger: '#main-scroll-container',
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: 1,
-        invalidateOnRefresh: true,
-      },
+    const build = (c: { hero: Pose; s2: Pose; s3: Pose; s4: Pose }) => {
+      gsap.set(g.position, { x: c.hero.pos[0], y: c.hero.pos[1], z: c.hero.pos[2] });
+      gsap.set(g.rotation, { x: c.hero.rot[0], y: c.hero.rot[1], z: c.hero.rot[2] });
+      gsap.set(g.scale, { x: c.hero.s, y: c.hero.s, z: c.hero.s });
+
+      const tl = gsap.timeline({
+        defaults: { duration: 1, ease: 'power2.inOut' },
+        scrollTrigger: {
+          trigger: '#main-scroll-container',
+          start: 'top top',
+          end: 'bottom bottom',
+          scrub: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      const step = (p: Pose, at: number) =>
+        tl
+          .to(g.rotation, { x: p.rot[0], y: p.rot[1], z: p.rot[2] }, at)
+          .to(g.position, { x: p.pos[0], y: p.pos[1], z: p.pos[2] }, at)
+          .to(g.scale, { x: p.s, y: p.s, z: p.s }, at);
+
+      step(c.s2, 0);
+      step(c.s3, 1);
+      step(c.s4, 2);
+      tl.to(camera.position, { y: 0, onUpdate: () => camera.lookAt(0, 0, 0) }, 2);
+    };
+
+    const mm = gsap.matchMedia();
+
+    // Masaüstü: mevcut değerlerin aynısı
+    mm.add('(min-width: 768px)', () => {
+      build({
+        hero: { pos: [0.2, 0.6, 1], rot: [-1, 0, 0], s: 12 },
+        s2: { pos: [2.8, 0, 0], rot: [0, 2.7, 0], s: 7 },
+        s3: { pos: [-3.4, 0.1, 1], rot: [0.2, 0.4, 0.02], s: 5 },
+        s4: { pos: [3.2, -2, 2], rot: [0, 3.5, 0], s: 10 },
+      });
     });
 
-    // 2. EKRAN (TEARDOWN)
-    tl.to(g.rotation, { x: 0, y: 2.7, z: 0 }, 0)
-      .to(g.position, { x: 2.8, y: 0, z: 0 }, 0)
-      .to(g.scale, { x: 7, y: 7, z: 7 }, 0)
+    // Mobil: telefon üstte, yazı altta. Değerler başlangıç tahmini, ince ayar gerekir.
+    mm.add('(max-width: 767px)', () => {
+      build({
+        hero: { pos: [0, 0.4, 0], rot: [-1, 0, 0], s: 7 },
+        s2: { pos: [0, 1.8, 0], rot: [0, 2.7, 0], s: 4 },
+        s3: { pos: [0, 1.8, 0], rot: [0.2, 0.4, 0.02], s: 3.6 },
+        s4: { pos: [0, 1.6, 1], rot: [0, 3.5, 0], s: 5 },
+      });
+    });
 
-      // 3. EKRAN (FEATURES)
-      .to(g.rotation, { x: 0.2, y: 0.4, z: 0.02 }, 1)
-      .to(g.position, { x: -3.4, y: 0.1, z: 1 }, 1)
-      .to(g.scale, { x: 5, y: 5, z: 5 }, 1)
-
-      // 4. EKRAN (CAMERA)
-      .to(g.rotation, { x: 0, y: 3.5, z: 0 }, 2)
-      .to(g.position, { x: 3.2, y: -2, z: 2 }, 2)
-      .to(g.scale, { x: 10, y: 10, z: 10 }, 2)
-      // Kamera telefonla aynı hizaya iner, perspektif eğriliği kaybolur
-      .to(
-        camera.position,
-        {
-          y: 0,
-          onUpdate: () => camera.lookAt(0, 0, 0),
-        },
-        2
-      );
+    return () => mm.revert();
   }, []);
 
   return (
@@ -91,7 +106,7 @@ export default function Scene() {
       camera={{ position: [0, -2, 9], fov: 45 }}
       dpr={[1, 1.5]}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: true }}
-      style={{ width: '100vw', height: '100vh', position: 'fixed', top: 0, left: 0, pointerEvents: 'none' }}
+      style={{ width: '100%', height: '100%', position: 'fixed', top: 0, left: 0, pointerEvents: 'none' }}
     >
       <Suspense fallback={null}>
         <ambientLight intensity={2.5} />
