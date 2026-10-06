@@ -13,10 +13,24 @@ gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
 useGLTF.setDecoderPath('/draco/');
 
+const MODEL_URL = '/model/phone-opt.glb'; // S26 Ultra (ana telefon, eskisi gibi)
+const PEN_URL = '/model/spen.glb'; // Sadece S Pen + 'status_toggle' animasyonu
+
+// S Pen ayrı bir modelden gelir ve telefonun içindeki yuvaya oturtulur.
+// Telefon modelinin yüksekliği 0.8406, pen modelinin kaynak telefonu 0.1632 birim: ölçek oranı budur.
+const PEN_SCALE = 0.8406 / 0.1632;
+// x/y: iki telefonun merkezi hizalı; z: ekran düzlemine göre (alt ucun gövdeden taşmaması için y biraz yukarıda)
+const PEN_POSITION: [number, number, number] = [-0.0145, -0.0235, 0.0306 - 0.0042 * PEN_SCALE];
+const TAU = Math.PI * 2;
+
 function RealPhoneModel() {
   const groupRef = useRef<THREE.Group>(null);
-  const { scene } = useGLTF('/model/phone-opt.glb');
+  const { scene } = useGLTF(MODEL_URL);
+  const { scene: penScene, animations } = useGLTF(PEN_URL);
   const { camera } = useThree();
+
+  // S Pen animasyonunu scroll'a bağlamak için mixer burada tutulur
+  const penRef = useRef<{ mixer: THREE.AnimationMixer; duration: number } | null>(null);
 
   // Modelin gerçek boyutu ve merkezi (mobilde yüzdeyle yerleştirmek için)
   const dims = useMemo(() => {
@@ -40,6 +54,28 @@ function RealPhoneModel() {
     });
   }, [scene]);
 
+  // S Pen animasyonu ('status_toggle'): pen yuvadan çıkar, ekranın önüne gelir. Scroll ile ileri-geri oynatılır.
+  useEffect(() => {
+    const clip = THREE.AnimationClip.findByName(animations, 'status_toggle');
+    if (!clip) {
+      console.warn('[Scene] status_toggle animasyonu bulunamadı');
+      return;
+    }
+    const mixer = new THREE.AnimationMixer(penScene);
+    const action = mixer.clipAction(clip);
+    action.setLoop(THREE.LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.play();
+    mixer.setTime(0);
+    penRef.current = { mixer, duration: clip.duration };
+
+    return () => {
+      mixer.stopAllAction();
+      mixer.uncacheRoot(penScene);
+      penRef.current = null;
+    };
+  }, [penScene, animations]);
+
   // Smooth scroll (Lenis) <-> ScrollTrigger senkronu
   useEffect(() => {
     const lenis = new Lenis({ lerp: 0.1 });
@@ -59,11 +95,14 @@ function RealPhoneModel() {
 
     type Pose = { pos: [number, number, number]; rot: [number, number, number]; s: number };
 
-    const build = (c: { hero: Pose; s2: Pose; s3: Pose; s4: Pose }) => {
+    const build = (c: { hero: Pose; s2: Pose; s3: Pose; s4: Pose; s5: Pose }) => {
       gsap.set(g.position, { x: c.hero.pos[0], y: c.hero.pos[1], z: c.hero.pos[2] });
       gsap.set(g.rotation, { x: c.hero.rot[0], y: c.hero.rot[1], z: c.hero.rot[2] });
       gsap.set(g.scale, { x: c.hero.s, y: c.hero.s, z: c.hero.s });
+      penRef.current?.mixer.setTime(0);
 
+      // Zaman çizelgesi: her 1 birim = 1 ekran yüksekliği kadar scroll
+      // 0-1: s2, 1-2: s3, 2-3: s4, 3-4: s5 (S Pen bölümüne geçiş), 4-5: S Pen animasyonu (bölüm sabit)
       const tl = gsap.timeline({
         defaults: { duration: 1, ease: 'power2.inOut' },
         scrollTrigger: {
@@ -85,17 +124,35 @@ function RealPhoneModel() {
       step(c.s3, 1);
       step(c.s4, 2);
       tl.to(camera.position, { y: 0, onUpdate: () => camera.lookAt(0, 0, 0) }, 2);
+      step(c.s5, 3);
+
+      // S Pen: klip süresini scroll ilerlemesine bağla (ease yok, doğrusal)
+      const pen = { p: 0 };
+      tl.to(
+        pen,
+        {
+          p: 1,
+          duration: 1,
+          ease: 'none',
+          onUpdate: () => {
+            const r = penRef.current;
+            if (r) r.mixer.setTime(pen.p * (r.duration - 0.001));
+          },
+        },
+        4
+      );
     };
 
     const mm = gsap.matchMedia();
 
-    // Masaüstü: mevcut değerlerin aynısı
+    // Masaüstü: s2-s4 eskisiyle aynı, s5 yeni (telefon solda, ön yüzü görünür; pen alttan çıkar)
     mm.add('(min-width: 768px)', () => {
       build({
         hero: { pos: [0.2, 0.6, 1], rot: [-1, 0, 0], s: 12 },
         s2: { pos: [2.8, 0, 0], rot: [0, 2.7, 0], s: 7 },
         s3: { pos: [-3.4, 0.1, 1], rot: [0.2, 0.4, 0.02], s: 5 },
         s4: { pos: [3.2, -2, 2], rot: [0, 3.5, 0], s: 10 },
+        s5: { pos: [-2.8, 0.75, 0], rot: [0.08, TAU + 0.35, 0], s: 4 },
       });
     });
 
@@ -126,6 +183,8 @@ function RealPhoneModel() {
         s2: fit(0.32, 0.27, 0, [0, 2.7, 0], CAM_Y),
         s3: fit(0.36, 0.29, 0, [0.2, 0.4, 0.02], CAM_Y),
         s4: fit(0.38, 0.31, 1, [0, 3.5, 0], 0),
+        // S Pen: telefon üstte, pen alttan çıkınca metin alanına fazla girmesin diye biraz küçük
+        s5: fit(0.27, 0.235, 0, [0.05, TAU + 0.25, 0], 0),
       });
     });
 
@@ -136,12 +195,16 @@ function RealPhoneModel() {
     <group ref={groupRef}>
       <Float speed={1.2} rotationIntensity={0.02} floatIntensity={0.05}>
         <primitive object={scene} />
+        <group scale={PEN_SCALE} position={PEN_POSITION}>
+          <primitive object={penScene} />
+        </group>
       </Float>
     </group>
   );
 }
 
-useGLTF.preload('/model/phone-opt.glb');
+useGLTF.preload(MODEL_URL);
+useGLTF.preload(PEN_URL);
 
 export default function Scene() {
   const [dpr, setDpr] = useState(1.25);
