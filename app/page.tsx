@@ -11,6 +11,7 @@ import CameraSection from '@/components/CameraSection';
 import SPenSection from '@/components/SPenSection';
 import ColorSection from '@/components/ColorSection';
 import GalaxyAI from '@/components/GalaxyAI';
+import CompareSection from '@/components/CompareSection';
 import Specs from '@/components/Specs';
 
 export default function Home() {
@@ -40,6 +41,7 @@ export default function Home() {
 
       {/* Animasyon bittikten sonra gelen bölümler (opak zeminle canvas'ı örter) */}
       <GalaxyAI />
+      <CompareSection />
       <Specs />
     </>
   );

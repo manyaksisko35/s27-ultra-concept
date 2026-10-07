@@ -48,7 +48,7 @@ export default function ColorSection() {
           <div
             role="radiogroup"
             aria-label="Phone color"
-            className="flex items-center gap-3 md:gap-4 rounded-full border border-white/10 bg-black/45 backdrop-blur-xl px-5 py-3"
+            className="flex items-center gap-3 md:gap-4 rounded-full border border-white/10 bg-black/75 px-5 py-3"
           >
             {FAN_COLORS.map((c) => {
               const selected = c.id === activeId;

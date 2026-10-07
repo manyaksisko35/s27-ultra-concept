@@ -42,7 +42,7 @@ export default function ColorPicker({ variant = 'inline' }: Props) {
     <div
       role="radiogroup"
       aria-label="Phone color"
-      className={`${wrapper} items-center gap-4 rounded-full border border-white/10 bg-black/45 backdrop-blur-xl px-4 py-2.5`}
+      className={`${wrapper} items-center gap-4 rounded-full border border-white/10 bg-black/75 px-4 py-2.5`}
     >
       <div className="flex items-center gap-2.5">
         {PHONE_COLORS.map((c) => {

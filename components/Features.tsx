@@ -4,7 +4,7 @@ export default function Features() {
       <div className="grid grid-cols-2 gap-3 md:gap-5 max-w-3xl w-full">
 
         <div className="sg-card col-span-2 relative p-5 md:p-9 overflow-hidden">
-          <div className="absolute -top-16 -right-16 w-64 h-64 bg-cyan-500/15 blur-[90px] rounded-full pointer-events-none" />
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[radial-gradient(circle,rgba(6,182,212,0.15),transparent_70%)] pointer-events-none" />
           <p className="sg-eyebrow mb-2 md:mb-4 !text-[0.6rem] md:!text-xs">Display</p>
           <h3 className="sg-title text-2xl md:text-5xl mb-2 md:mb-4">
             6.9<span className="text-lg md:text-2xl text-white/50">&quot;</span> <strong>Dynamic AMOLED 2X</strong>

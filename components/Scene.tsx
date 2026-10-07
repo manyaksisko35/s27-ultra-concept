@@ -146,19 +146,6 @@ function RealPhoneModel() {
     };
   }, [penScene, animations]);
 
-  // Smooth scroll (Lenis) <-> ScrollTrigger senkronu
-  useEffect(() => {
-    const lenis = new Lenis({ lerp: 0.1 });
-    lenis.on('scroll', ScrollTrigger.update);
-    const tick = (t: number) => lenis.raf(t * 1000);
-    gsap.ticker.add(tick);
-    gsap.ticker.lagSmoothing(0);
-    return () => {
-      gsap.ticker.remove(tick);
-      lenis.destroy();
-    };
-  }, []);
-
   // Seçili renkteki telefon yelpaze açıkken öne ve yukarı çıkar (her karede yumuşak geçişle)
   useFrame((_, dt) => {
     const sel = FAN_COLORS.findIndex((c) => c.id === getColorId());
@@ -347,9 +334,19 @@ useGLTF.preload(PEN_URL);
 
 export default function Scene() {
   const [dpr, setDpr] = useState(1.25);
+  // Animasyon konteyneri ekrandan çıkınca (Galaxy AI, Compare, Specs) bu sahne çizilmez; ikinci Canvas'la GPU paylaşılmaz
+  const [visible, setVisible] = useState(true);
+  useEffect(() => {
+    const el = document.getElementById('main-scroll-container');
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   return (
     <Canvas
+      frameloop={visible ? 'always' : 'never'}
       camera={{ position: [0, -2, 9], fov: 45 }}
       dpr={dpr}
       gl={{ antialias: true, powerPreference: 'high-performance', alpha: true }}
@@ -358,7 +355,7 @@ export default function Scene() {
       {/* Cihaz yavaşlarsa çözünürlüğü düşürür, güçlüyse yükseltir */}
       <PerformanceMonitor
         onDecline={() => setDpr(1)}
-        onIncline={() => setDpr(Math.min(window.devicePixelRatio, 1.75))}
+        onIncline={() => setDpr(Math.min(window.devicePixelRatio, 1.5))}
       />
       <Suspense fallback={null}>
         <ambientLight intensity={2.5} />

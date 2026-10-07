@@ -28,7 +28,7 @@ export default function Specs() {
 
       <div className="mt-16 flex gap-4">
         <a href="#" className="sg-btn">Pre-order now</a>
-        <a href="#" className="sg-btn sg-btn--ghost">Compare models</a>
+        <a href="#compare" className="sg-btn sg-btn--ghost">Compare models</a>
       </div>
 
       <footer className="mt-20 md:mt-32 pt-8 border-t border-white/10 flex flex-col gap-2 md:flex-row md:justify-between text-xs text-white/40">

@@ -10,6 +10,7 @@ const LINKS = [
   { label: 'Camera', id: 'camera', offset: 0 },
   { label: 'S Pen', id: 's-pen', offset: 1 },
   { label: 'Colors', id: 'colors', offset: 1 },
+  { label: 'Compare', id: 'compare', offset: 2 },
   { label: 'Specs', id: 'specs', offset: 0 },
 ];
 
@@ -22,6 +23,7 @@ const SECTIONS: { id: string; link: string | null }[] = [
   { id: 's-pen', link: 's-pen' },
   { id: 'colors', link: 'colors' },
   { id: 'galaxy-ai', link: null },
+  { id: 'compare', link: 'compare' },
   { id: 'specs', link: 'specs' },
 ];
 
@@ -62,7 +64,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 inset-x-0 z-50 h-16 px-5 md:px-12 flex items-center justify-between bg-black/70 md:bg-black/40 md:backdrop-blur-xl border-b border-white/10">
+    <header className="fixed top-0 inset-x-0 z-50 h-16 px-5 md:px-12 flex items-center justify-between bg-black/85 border-b border-white/10">
       <a
         href="#overview"
         onClick={(e) => go(e, 'overview')}
@@ -107,7 +109,7 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <nav className="lg:hidden absolute top-16 inset-x-0 bg-black/90 backdrop-blur-xl border-b border-white/10 flex flex-col px-5 py-2">
+        <nav className="lg:hidden absolute top-16 inset-x-0 bg-black/95 border-b border-white/10 flex flex-col px-5 py-2">
           {LINKS.map((l) => (
             <a
               key={l.id}
