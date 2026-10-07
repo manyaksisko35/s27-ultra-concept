@@ -1,6 +1,6 @@
 export default function CameraSection() {
   return (
-    <section className="h-svh w-full flex items-end md:items-center justify-start px-6 md:px-[12%] pb-14 md:pb-0 relative">
+    <section id="camera" className="h-svh w-full flex items-end md:items-center justify-start px-6 md:px-[12%] pb-14 md:pb-0 relative">
       <div className="max-w-xl">
         <p className="sg-eyebrow mb-3 md:mb-5">Camera</p>
         <h2 className="sg-title text-4xl md:text-7xl mb-4 md:mb-6 drop-shadow-xl">

@@ -1,6 +1,6 @@
 export default function Features() {
   return (
-    <section className="h-svh w-full flex items-end md:items-center justify-end px-4 md:px-[10%] pb-8 md:pb-0 relative">
+    <section id="features" className="h-svh w-full flex items-end md:items-center justify-end px-4 md:px-[10%] pb-8 md:pb-0 relative">
       <div className="grid grid-cols-2 gap-3 md:gap-5 max-w-3xl w-full">
 
         <div className="sg-card col-span-2 relative p-5 md:p-9 overflow-hidden">

@@ -1,6 +1,6 @@
 export default function Hero() {
   return (
-    <section className="h-svh w-full flex flex-col items-center justify-center text-center relative pointer-events-none px-4">
+    <section id="overview" className="h-svh w-full flex flex-col items-center justify-center text-center relative pointer-events-none px-4">
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#030303] z-[-1]" />
 
       <p className="sg-eyebrow mb-4 md:mb-6 !text-[0.65rem] md:!text-xs" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.9))' }}>

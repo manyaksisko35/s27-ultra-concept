@@ -9,6 +9,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import Lenis from 'lenis';
 import { FAN_CENTER, FAN_COLORS, PART_BY_MATERIAL, getColorId, type PhoneColor } from '@/lib/phoneColor';
+import { setLenis } from '@/lib/lenis';
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
@@ -90,19 +91,20 @@ function RealPhoneModel() {
   }, [scene]);
 
   // Gereksiz gölge işlerini kapat, dokuları hafif keskinleştir
+  // Smooth scroll (Lenis) <-> ScrollTrigger senkronu
   useEffect(() => {
-    scene.traverse((o) => {
-      const m = o as THREE.Mesh;
-      if (!m.isMesh) return;
-      m.castShadow = false;
-      m.receiveShadow = false;
-      const mats = Array.isArray(m.material) ? m.material : [m.material];
-      mats.forEach((mat) => {
-        const map = (mat as THREE.MeshStandardMaterial)?.map;
-        if (map) map.anisotropy = 4;
-      });
-    });
-  }, [scene]);
+    const lenis = new Lenis({ lerp: 0.1 });
+    setLenis(lenis);
+    lenis.on('scroll', ScrollTrigger.update);
+    const tick = (t: number) => lenis.raf(t * 1000);
+    gsap.ticker.add(tick);
+    gsap.ticker.lagSmoothing(0);
+    return () => {
+      setLenis(null);
+      gsap.ticker.remove(tick);
+      lenis.destroy();
+    };
+  }, []);
 
   // Ana telefon da yelpazedeki ortadaki rengine (Sky Blue) boyanır, böylece yelpazedeki rengiyle birebir aynı olur
   useEffect(() => {

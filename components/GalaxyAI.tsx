@@ -7,7 +7,7 @@ const AI_FEATURES = [
 
 export default function GalaxyAI() {
   return (
-    <section className="relative z-10 bg-[#030303] px-6 md:px-[12%] pt-28 md:pt-40 pb-16 md:pb-20">
+    <section id="galaxy-ai" className="relative z-10 bg-[#030303] px-6 md:px-[12%] pt-28 md:pt-40 pb-16 md:pb-20">
       <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-violet-500/10 to-transparent pointer-events-none" />
 
       <p className="sg-eyebrow mb-5 relative">Galaxy AI</p>
