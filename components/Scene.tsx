@@ -1,6 +1,6 @@
 'use client';
 
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, ContactShadows, Float, PerformanceMonitor } from '@react-three/drei';
 import { useRef, useEffect, useMemo, useState, Suspense } from 'react';
 import * as THREE from 'three';
@@ -8,12 +8,13 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import Lenis from 'lenis';
+import { FAN_CENTER, FAN_COLORS, PART_BY_MATERIAL, getColorId, type PhoneColor } from '@/lib/phoneColor';
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
 useGLTF.setDecoderPath('/draco/');
 
-const MODEL_URL = '/model/phone-opt.glb'; // S26 Ultra (ana telefon, eskisi gibi)
+const MODEL_URL = '/model/phone-opt.glb'; // S26 Ultra (ana telefon)
 const PEN_URL = '/model/spen.glb'; // Sadece S Pen + 'status_toggle' animasyonu
 
 // S Pen ayrı bir modelden gelir ve telefonun içindeki yuvaya oturtulur.
@@ -23,6 +24,46 @@ const PEN_SCALE = 0.8406 / 0.1632;
 const PEN_POSITION: [number, number, number] = [-0.0145, -0.0235, 0.0306 - 0.0042 * PEN_SCALE];
 const TAU = Math.PI * 2;
 
+// Renk yelpazesi (model birimleriyle; telefonun yüksekliği 0.84)
+const FAN_RADIUS = 1.0; // yelpazenin dönme noktasının telefon merkezinin ne kadar altında olduğu
+const FAN_LIFT = 0.12; // seçili telefon kendi ekseninde bu kadar yukarı çıkar
+const FAN_Z_STEP = 0.07; // üst üste binen telefonlar arası derinlik (telefon kalınlığı 0.0635'ten büyük olmalı)
+const FAN_SIGN = 1; // yelpazenin yönü (soldan sağa sıra ters çıkarsa -1 yap)
+
+// Bir telefon modelinin renk materyallerini verilen renge boyar (arka yüz, çerçeve, kamera kapsülü, cam katmanı)
+function applyPreset(root: THREE.Object3D, preset: PhoneColor) {
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    (Array.isArray(m.material) ? m.material : [m.material]).forEach((mat) => {
+      const std = mat as THREE.MeshStandardMaterial;
+      const part = PART_BY_MATERIAL[std.name];
+      if (!part) return;
+      if (part === 'glass') {
+        std.opacity = preset.glass;
+        return;
+      }
+      const k = part === 'frame' ? preset.frameGain : part === 'capsule' ? preset.capsuleGain : 1;
+      std.color.setRGB(preset.back[0] * k, preset.back[1] * k, preset.back[2] * k);
+      // Model tam metalik ve ortam haritasız olduğu için ışık altında çok koyu kalıyordu; cam gibi bir yüzeye çevrilir
+      std.metalness = part === 'back' ? 0.1 : 0.2;
+      std.roughness = part === 'back' ? 0.4 : 0.45;
+    });
+  });
+}
+
+// Ana telefonun bir kopyasını, verilen renge boyayarak oluşturur (materyaller kopyalanır, ana telefon etkilenmez)
+function makeColoredClone(source: THREE.Object3D, preset: PhoneColor): THREE.Object3D {
+  const copy = source.clone(true);
+  copy.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    m.material = Array.isArray(m.material) ? m.material.map((x) => x.clone()) : m.material.clone();
+  });
+  applyPreset(copy, preset);
+  return copy;
+}
+
 function RealPhoneModel() {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(MODEL_URL);
@@ -31,6 +72,15 @@ function RealPhoneModel() {
 
   // S Pen animasyonunu scroll'a bağlamak için mixer burada tutulur
   const penRef = useRef<{ mixer: THREE.AnimationMixer; duration: number } | null>(null);
+
+  // Renk yelpazesi: ortadaki ana telefon, diğerleri renkli kopyalar
+  const fanClones = useMemo(
+    () => FAN_COLORS.map((c, i) => (i === FAN_CENTER ? null : makeColoredClone(scene, c))),
+    [scene]
+  );
+  const pivotRefs = useRef<(THREE.Group | null)[]>([]); // yelpazeyi açan döndürme noktaları
+  const liftRefs = useRef<(THREE.Group | null)[]>([]); // seçili telefonu öne/yukarı alan gruplar
+  const fanState = useRef({ open: 0 }); // 0 = kapalı, 1 = tamamen açık
 
   // Modelin gerçek boyutu ve merkezi (mobilde yüzdeyle yerleştirmek için)
   const dims = useMemo(() => {
@@ -53,6 +103,24 @@ function RealPhoneModel() {
       });
     });
   }, [scene]);
+
+  // Ana telefon da yelpazedeki ortadaki rengine (Sky Blue) boyanır, böylece yelpazedeki rengiyle birebir aynı olur
+  useEffect(() => {
+    applyPreset(scene, FAN_COLORS[FAN_CENTER]);
+  }, [scene]);
+
+  // Kopyaların materyallerini sayfadan çıkınca serbest bırak
+  useEffect(() => {
+    return () => {
+      fanClones.forEach((c) =>
+        c?.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (!m.isMesh) return;
+          (Array.isArray(m.material) ? m.material : [m.material]).forEach((mat) => mat.dispose());
+        })
+      );
+    };
+  }, [fanClones]);
 
   // S Pen animasyonu ('status_toggle'): pen yuvadan çıkar, ekranın önüne gelir. Scroll ile ileri-geri oynatılır.
   useEffect(() => {
@@ -89,20 +157,46 @@ function RealPhoneModel() {
     };
   }, []);
 
+  // Seçili renkteki telefon yelpaze açıkken öne ve yukarı çıkar (her karede yumuşak geçişle)
+  useFrame((_, dt) => {
+    const sel = FAN_COLORS.findIndex((c) => c.id === getColorId());
+    const open = fanState.current.open;
+    liftRefs.current.forEach((g, i) => {
+      if (!g) return;
+      const isSel = i === sel;
+      const baseY = i === FAN_CENTER ? 0 : FAN_RADIUS;
+      const ty = baseY + (isSel ? FAN_LIFT : 0) * open;
+      // Kopyalar baştan itibaren ana telefonun arkasında durur (aynı düzlemde olsalar üst üste titrerdi);
+      // seçili olan yelpaze açıldıkça en öne gelir
+      const baseZ = FAN_Z_STEP * Math.abs(i - FAN_CENTER);
+      const tz = isSel ? THREE.MathUtils.lerp(baseZ, -FAN_Z_STEP * 1.5, open) : baseZ;
+      g.position.y = THREE.MathUtils.damp(g.position.y, ty, 8, dt);
+      g.position.z = THREE.MathUtils.damp(g.position.z, tz, 8, dt);
+    });
+  });
+
   useGSAP(() => {
     const g = groupRef.current;
     if (!g) return;
 
     type Pose = { pos: [number, number, number]; rot: [number, number, number]; s: number };
 
-    const build = (c: { hero: Pose; s2: Pose; s3: Pose; s4: Pose; s5: Pose }) => {
+    const build = (c: { hero: Pose; s2: Pose; s3: Pose; s4: Pose; s5: Pose; s6: Pose }, fanStep: number) => {
       gsap.set(g.position, { x: c.hero.pos[0], y: c.hero.pos[1], z: c.hero.pos[2] });
       gsap.set(g.rotation, { x: c.hero.rot[0], y: c.hero.rot[1], z: c.hero.rot[2] });
       gsap.set(g.scale, { x: c.hero.s, y: c.hero.s, z: c.hero.s });
       penRef.current?.mixer.setTime(0);
+      fanState.current.open = 0;
+      const pivots = pivotRefs.current;
+      pivots.forEach((pv) => {
+        if (!pv) return;
+        pv.rotation.z = 0;
+        pv.visible = false;
+      });
 
       // Zaman çizelgesi: her 1 birim = 1 ekran yüksekliği kadar scroll
-      // 0-1: s2, 1-2: s3, 2-3: s4, 3-4: s5 (S Pen bölümüne geçiş), 4-5: S Pen animasyonu (bölüm sabit)
+      // 0-1: s2, 1-2: s3, 2-3: s4, 3-4: s5 (S Pen bölümüne geçiş), 4-5: S Pen çıkar (bölüm sabit),
+      // 5-6: S Pen yuvasına döner + telefon renk bölümüne geçer, 6-7: yelpaze açılır, 7-8: bekleme (renk seçimi)
       const tl = gsap.timeline({
         defaults: { duration: 1, ease: 'power2.inOut' },
         scrollTrigger: {
@@ -126,34 +220,43 @@ function RealPhoneModel() {
       tl.to(camera.position, { y: 0, onUpdate: () => camera.lookAt(0, 0, 0) }, 2);
       step(c.s5, 3);
 
-      // S Pen: klip süresini scroll ilerlemesine bağla (ease yok, doğrusal)
+      // S Pen: klip süresini scroll ilerlemesine bağla (ease yok, doğrusal). 4-5 çıkar, 5-6 geri girer.
       const pen = { p: 0 };
-      tl.to(
-        pen,
-        {
-          p: 1,
-          duration: 1,
-          ease: 'none',
-          onUpdate: () => {
-            const r = penRef.current;
-            if (r) r.mixer.setTime(pen.p * (r.duration - 0.001));
-          },
-        },
-        4
-      );
+      const penUpdate = () => {
+        const r = penRef.current;
+        if (r) r.mixer.setTime(pen.p * (r.duration - 0.001));
+      };
+      tl.to(pen, { p: 1, duration: 1, ease: 'none', onUpdate: penUpdate }, 4);
+      tl.to(pen, { p: 0, duration: 1, ease: 'none', onUpdate: penUpdate }, 5);
+      step(c.s6, 5);
+
+      // Yelpaze: kopyalar ana telefonun arkasından çıkıp açılır
+      pivots.forEach((pv, i) => {
+        if (!pv) return;
+        tl.set(pv, { visible: true, immediateRender: false }, 6);
+        tl.to(pv.rotation, { z: FAN_SIGN * (i - FAN_CENTER) * fanStep }, 6);
+      });
+      tl.to(fanState.current, { open: 1 }, 6);
+
+      // 7-8: yelpaze açık kalır (renk seçimi için scroll payı)
+      tl.to({ idle: 0 }, { idle: 1, duration: 1, ease: 'none' }, 7);
     };
 
     const mm = gsap.matchMedia();
 
-    // Masaüstü: s2-s4 eskisiyle aynı, s5 yeni (telefon solda, ön yüzü görünür; pen alttan çıkar)
+    // Masaüstü: s2-s4 eskisiyle aynı, s5 S Pen, s6 renk yelpazesi (telefon arkası kameraya dönük)
     mm.add('(min-width: 768px)', () => {
-      build({
-        hero: { pos: [0.2, 0.6, 1], rot: [-1, 0, 0], s: 12 },
-        s2: { pos: [2.8, 0, 0], rot: [0, 2.7, 0], s: 7 },
-        s3: { pos: [-3.4, 0.1, 1], rot: [0.2, 0.4, 0.02], s: 5 },
-        s4: { pos: [3.2, -2, 2], rot: [0, 3.5, 0], s: 10 },
-        s5: { pos: [-2.8, 0.75, 0], rot: [0.08, TAU + 0.35, 0], s: 4 },
-      });
+      build(
+        {
+          hero: { pos: [0.2, 0.6, 1], rot: [-1, 0, 0], s: 12 },
+          s2: { pos: [2.8, 0, 0], rot: [0, 2.7, 0], s: 7 },
+          s3: { pos: [-3.4, 0.1, 1], rot: [0.2, 0.4, 0.02], s: 5 },
+          s4: { pos: [3.2, -2, 2], rot: [0, 3.5, 0], s: 10 },
+          s5: { pos: [-2.8, 0.75, 0], rot: [0.08, TAU + 0.35, 0], s: 4 },
+          s6: { pos: [0, -0.25, 0], rot: [0, TAU + Math.PI, 0], s: 3.1 },
+        },
+        0.3
+      );
     });
 
     // Mobil: telefonu ekranın yüzdesine göre yerleştir
@@ -178,14 +281,19 @@ function RealPhoneModel() {
         return { pos: [p.x, p.y, p.z], rot, s };
       };
 
-      build({
-        hero: { pos: [0, 0.3, 0], rot: [-1, 0, 0], s: 5 },
-        s2: fit(0.32, 0.27, 0, [0, 2.7, 0], CAM_Y),
-        s3: fit(0.36, 0.29, 0, [0.2, 0.4, 0.02], CAM_Y),
-        s4: fit(0.38, 0.31, 1, [0, 3.5, 0], 0),
-        // S Pen: telefon üstte, pen alttan çıkınca metin alanına fazla girmesin diye biraz küçük
-        s5: fit(0.27, 0.235, 0, [0.05, TAU + 0.25, 0], 0),
-      });
+      build(
+        {
+          hero: { pos: [0, 0.3, 0], rot: [-1, 0, 0], s: 5 },
+          s2: fit(0.32, 0.27, 0, [0, 2.7, 0], CAM_Y),
+          s3: fit(0.36, 0.29, 0, [0.2, 0.4, 0.02], CAM_Y),
+          s4: fit(0.38, 0.31, 1, [0, 3.5, 0], 0),
+          // S Pen: telefon üstte, pen alttan çıkınca metin alanına fazla girmesin diye biraz küçük
+          s5: fit(0.27, 0.235, 0, [0.05, TAU + 0.25, 0], 0),
+          // Renk yelpazesi: başlık üstte, renk seçici altta; dar ekranda yelpaze daha kapalı açılır
+          s6: fit(0.26, 0.5, 0, [0, TAU + Math.PI, 0], 0),
+        },
+        0.2
+      );
     });
 
     return () => mm.revert();
@@ -194,11 +302,40 @@ function RealPhoneModel() {
   return (
     <group ref={groupRef}>
       <Float speed={1.2} rotationIntensity={0.02} floatIntensity={0.05}>
-        <primitive object={scene} />
-        <group scale={PEN_SCALE} position={PEN_POSITION}>
-          <primitive object={penScene} />
+        <group
+          ref={(el) => {
+            liftRefs.current[FAN_CENTER] = el;
+          }}
+        >
+          <primitive object={scene} />
+          <group scale={PEN_SCALE} position={PEN_POSITION}>
+            <primitive object={penScene} />
+          </group>
         </group>
       </Float>
+
+      {FAN_COLORS.map((c, i) => {
+        const clone = fanClones[i];
+        if (!clone) return null;
+        return (
+          <group
+            key={c.id}
+            ref={(el) => {
+              pivotRefs.current[i] = el;
+            }}
+            position={[0, -FAN_RADIUS, 0]}
+          >
+            <group
+              ref={(el) => {
+                liftRefs.current[i] = el;
+              }}
+              position={[0, FAN_RADIUS, 0]}
+            >
+              <primitive object={clone} />
+            </group>
+          </group>
+        );
+      })}
     </group>
   );
 }
