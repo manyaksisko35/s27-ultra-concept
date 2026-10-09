@@ -1,3 +1,5 @@
+import type * as THREE from 'three';
+
 // Telefon renkleri için küçük, bağımsız bir store. ColorSection (arayüz) ve Scene (3D) aynı değeri okur.
 // React context gerekmez: Scene başka bir ağaçta (Canvas) çalıştığı için useSyncExternalStore kullanılır.
 
@@ -54,3 +56,25 @@ export const subscribeColor = (l: () => void) => {
     listeners.delete(l);
   };
 };
+
+// Bir telefon modelinin renk materyallerini verilen renge boyar (arka yüz, çerçeve, kamera kapsülü, cam katmanı)
+export function applyPreset(root: THREE.Object3D, preset: PhoneColor) {
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh) return;
+    (Array.isArray(m.material) ? m.material : [m.material]).forEach((mat) => {
+      const std = mat as THREE.MeshStandardMaterial;
+      const part = PART_BY_MATERIAL[std.name];
+      if (!part) return;
+      if (part === 'glass') {
+        std.opacity = preset.glass;
+        return;
+      }
+      const k = part === 'frame' ? preset.frameGain : part === 'capsule' ? preset.capsuleGain : 1;
+      std.color.setRGB(preset.back[0] * k, preset.back[1] * k, preset.back[2] * k);
+      // Model tam metalik ve ortam haritasız olduğu için ışık altında çok koyu kalıyordu; cam gibi bir yüzeye çevrilir
+      std.metalness = part === 'back' ? 0.1 : 0.2;
+      std.roughness = part === 'back' ? 0.4 : 0.45;
+    });
+  });
+}

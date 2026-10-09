@@ -1,7 +1,8 @@
 const SPECS: [string, string][] = [
   ['Display', '6.9" Dynamic AMOLED 2X, 3120 x 1440, 120Hz'],
   ['Processor', 'Snapdragon 8 Elite Gen 5 for Galaxy'],
-  ['Memory', '12GB / 16GB LPDDR5X'],
+  ['Memory', '12GB (256GB / 512GB) · 16GB (1TB) LPDDR5X'],
+  ['Storage', '256GB / 512GB / 1TB'],
   ['Main camera', '200MP wide + 50MP ultra-wide'],
   ['Telephoto', '50MP 5x + 10MP 3x'],
   ['Front camera', '12MP'],
@@ -33,7 +34,19 @@ export default function Specs() {
 
       <footer className="mt-20 md:mt-32 pt-8 border-t border-white/10 flex flex-col gap-2 md:flex-row md:justify-between text-xs text-white/40">
         <span className="tracking-[0.3em]">SAMSUNG</span>
-        <span>Fan-made concept. Not affiliated with Samsung. Designed and Coded by Hasan Alp Güngör.</span>
+        <span className="md:text-right">
+          Fan-made concept. Not affiliated with Samsung. Designed and Coded by Hasan Alp Güngör.
+          <br />
+          S Pen &amp; Galaxy S25 Ultra 3D models by{' '}
+          <a href="https://sketchfab.com/vmmaniac" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">
+            vmmaniac
+          </a>{' '}
+          (
+          <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">
+            CC BY 4.0
+          </a>
+          ).
+        </span>
       </footer>
     </section>
   );

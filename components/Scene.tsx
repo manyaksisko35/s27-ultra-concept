@@ -8,8 +8,9 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import Lenis from 'lenis';
-import { FAN_CENTER, FAN_COLORS, PART_BY_MATERIAL, getColorId, type PhoneColor } from '@/lib/phoneColor';
+import { FAN_CENTER, FAN_COLORS, applyPreset, getColorId, type PhoneColor } from '@/lib/phoneColor';
 import { setLenis } from '@/lib/lenis';
+import { RimLight, StudioEnv } from '@/components/StudioEnv';
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
@@ -30,28 +31,6 @@ const FAN_RADIUS = 1.0; // yelpazenin dönme noktasının telefon merkezinin ne 
 const FAN_LIFT = 0.12; // seçili telefon kendi ekseninde bu kadar yukarı çıkar
 const FAN_Z_STEP = 0.07; // üst üste binen telefonlar arası derinlik (telefon kalınlığı 0.0635'ten büyük olmalı)
 const FAN_SIGN = 1; // yelpazenin yönü (soldan sağa sıra ters çıkarsa -1 yap)
-
-// Bir telefon modelinin renk materyallerini verilen renge boyar (arka yüz, çerçeve, kamera kapsülü, cam katmanı)
-function applyPreset(root: THREE.Object3D, preset: PhoneColor) {
-  root.traverse((o) => {
-    const m = o as THREE.Mesh;
-    if (!m.isMesh) return;
-    (Array.isArray(m.material) ? m.material : [m.material]).forEach((mat) => {
-      const std = mat as THREE.MeshStandardMaterial;
-      const part = PART_BY_MATERIAL[std.name];
-      if (!part) return;
-      if (part === 'glass') {
-        std.opacity = preset.glass;
-        return;
-      }
-      const k = part === 'frame' ? preset.frameGain : part === 'capsule' ? preset.capsuleGain : 1;
-      std.color.setRGB(preset.back[0] * k, preset.back[1] * k, preset.back[2] * k);
-      // Model tam metalik ve ortam haritasız olduğu için ışık altında çok koyu kalıyordu; cam gibi bir yüzeye çevrilir
-      std.metalness = part === 'back' ? 0.1 : 0.2;
-      std.roughness = part === 'back' ? 0.4 : 0.45;
-    });
-  });
-}
 
 // Ana telefonun bir kopyasını, verilen renge boyayarak oluşturur (materyaller kopyalanır, ana telefon etkilenmez)
 function makeColoredClone(source: THREE.Object3D, preset: PhoneColor): THREE.Object3D {
@@ -358,7 +337,10 @@ export default function Scene() {
         onIncline={() => setDpr(Math.min(window.devicePixelRatio, 1.5))}
       />
       <Suspense fallback={null}>
-        <ambientLight intensity={2.5} />
+        {/* Stüdyo yansımaları (bir kez çizilir) + kenar ışığı */}
+        <StudioEnv intensity={0.7} />
+        <RimLight />
+        <ambientLight intensity={1.8} />
         <directionalLight position={[5, 5, 5]} intensity={4.5} color="#ffffff" />
         <directionalLight position={[-5, -5, -5]} intensity={2.5} color="#06b6d4" />
         <spotLight position={[0, -5, 10]} intensity={6} angle={0.5} penumbra={1} color="#ffffff" />

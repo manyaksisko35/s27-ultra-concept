@@ -96,3 +96,76 @@
     background: rgba(12, 12, 14, 0.8);
   }
 }
+/* ---- Başlık animasyonu (HeadlineReveal) ----
+   Ekrana girince: bulanıktan netleşir, aşağıdan yükselir ve soldan sağa süpürülen bir maskeyle belirir.
+   Sadece JS hazırsa (html.reveal-ready) gizli başlar; hareket azaltma tercihinde hiç uygulanmaz. */
+@media (prefers-reduced-motion: no-preference) {
+  html.reveal-ready h2.sg-title {
+    -webkit-mask-image: linear-gradient(90deg, #000 45%, transparent 55%);
+    mask-image: linear-gradient(90deg, #000 45%, transparent 55%);
+    -webkit-mask-size: 260% 100%;
+    mask-size: 260% 100%;
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(18px);
+    transition:
+      opacity 0.8s ease,
+      filter 0.9s ease,
+      transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1),
+      -webkit-mask-position 1.1s cubic-bezier(0.3, 0.6, 0.2, 1),
+      mask-position 1.1s cubic-bezier(0.3, 0.6, 0.2, 1);
+  }
+  html.reveal-ready h2.sg-title[data-in] {
+    -webkit-mask-position: 0 0;
+    mask-position: 0 0;
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+/* ---- Bölüm atmosferleri (sg-ambient + renk teması) ----
+   Kapsayıcının arkasında iki büyük, yumuşak ışık hüzmesi çok yavaş kayar; üstte ince film greni.
+   Sadece transform animasyonu (GPU'da, sayfayı yeniden çizmez). isolation sayesinde ::before/::after
+   kapsayıcının arka planının üstünde ama içeriğin altında kalır. */
+.sg-ambient {
+  isolation: isolate;
+}
+.sg-ambient::before {
+  content: '';
+  position: absolute;
+  inset: -15%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 34% at 22% 30%, var(--amb-a), transparent 70%),
+    radial-gradient(34% 30% at 78% 70%, var(--amb-b), transparent 70%);
+  animation: sg-drift 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.sg-ambient::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+@keyframes sg-drift {
+  from { transform: translate3d(-4%, -3%, 0) scale(1); }
+  to { transform: translate3d(4%, 3%, 0) scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-ambient::before { animation: none; }
+}
+/* Renk temaları */
+.amb-cyan   { --amb-a: rgba(34, 211, 238, 0.16); --amb-b: rgba(59, 130, 246, 0.12); }
+.amb-violet { --amb-a: rgba(167, 139, 250, 0.18); --amb-b: rgba(236, 72, 153, 0.10); }
+.amb-night  { --amb-a: rgba(37, 99, 235, 0.18);  --amb-b: rgba(99, 102, 241, 0.12); }
+.amb-sunset { --amb-a: rgba(251, 146, 60, 0.14); --amb-b: rgba(168, 85, 247, 0.12); }
+.amb-silver { --amb-a: rgba(186, 230, 253, 0.12); --amb-b: rgba(148, 163, 184, 0.12); }
+.amb-teal   { --amb-a: rgba(45, 212, 191, 0.14); --amb-b: rgba(234, 179, 8, 0.08); }
+.amb-indigo { --amb-a: rgba(79, 70, 229, 0.16);  --amb-b: rgba(14, 165, 233, 0.10); }

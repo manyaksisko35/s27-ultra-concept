@@ -1,66 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { scrollToId } from '@/lib/lenis';
+import { GROUPS, sectionById, useActiveSection } from '@/lib/sections';
 
-// offset: bölümün başından kaç ekran içeri kayılacağı (S Pen çıkmış, yelpaze açılmış görünsün diye)
-const LINKS = [
-  { label: 'Overview', id: 'overview', offset: 0 },
-  { label: 'Performance', id: 'performance', offset: 0 },
-  { label: 'Camera', id: 'camera', offset: 0 },
-  { label: 'S Pen', id: 's-pen', offset: 1 },
-  { label: 'Colors', id: 'colors', offset: 1 },
-  { label: 'Compare', id: 'compare', offset: 2 },
-  { label: 'Specs', id: 'specs', offset: 0 },
-];
-
-// Sayfadaki sıra (yukarıdan aşağıya). link: menüde hangi öğenin aktif görüneceği (null = hiçbiri)
-const SECTIONS: { id: string; link: string | null }[] = [
-  { id: 'overview', link: 'overview' },
-  { id: 'performance', link: 'performance' },
-  { id: 'features', link: 'performance' },
-  { id: 'camera', link: 'camera' },
-  { id: 's-pen', link: 's-pen' },
-  { id: 'colors', link: 'colors' },
-  { id: 'galaxy-ai', link: null },
-  { id: 'compare', link: 'compare' },
-  { id: 'specs', link: 'specs' },
-];
-
+// Üst menü: bölümler gruplanır (Camera, Features açılır menü). Bölüm listesi lib/sections.ts'te.
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<string | null>('overview');
+  const activeId = useActiveSection();
+  const activeGroup = sectionById(activeId)?.group;
 
-  // Hangi bölümde olduğunu bul (ekranın ortasını geçen son bölüm)
-  useEffect(() => {
-    let raf = 0;
-    const update = () => {
-      raf = 0;
-      const line = window.innerHeight * 0.5;
-      let current: string | null = null;
-      for (const s of SECTIONS) {
-        const el = document.getElementById(s.id);
-        if (el && el.getBoundingClientRect().top <= line) current = s.link;
-      }
-      setActive(current);
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      if (raf) cancelAnimationFrame(raf);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, []);
-
-  const go = (e: React.MouseEvent, id: string, offset = 0) => {
+  const go = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     setOpen(false);
-    scrollToId(id, offset);
+    scrollToId(id, sectionById(id)?.offset ?? 0);
   };
 
   return (
@@ -73,33 +26,65 @@ export default function Navbar() {
         SAMSUNG
       </a>
 
-      <nav className="hidden lg:flex gap-8 xl:gap-10 text-sm">
-        {LINKS.map((l) => (
-          <a
-            key={l.id}
-            href={`#${l.id}`}
-            onClick={(e) => go(e, l.id, l.offset)}
-            className={`relative py-1 transition-colors ${
-              active === l.id ? 'text-white' : 'text-white/60 hover:text-white'
-            }`}
-          >
-            {l.label}
-            <span
-              className={`absolute left-0 -bottom-0.5 h-px bg-white transition-all duration-300 ${
-                active === l.id ? 'w-full opacity-100' : 'w-0 opacity-0'
-              }`}
-            />
-          </a>
-        ))}
+      <nav className="hidden lg:flex gap-7 xl:gap-9 text-sm h-full">
+        {GROUPS.map((g) => {
+          const isActive = activeGroup === g.name;
+          const first = g.items[0];
+          const multi = g.items.length > 1;
+          return (
+            <div key={g.name} className="relative group/nav h-full flex items-center">
+              <a
+                href={`#${first.id}`}
+                onClick={(e) => go(e, first.id)}
+                className={`relative py-1 flex items-center gap-1 transition-colors ${
+                  isActive ? 'text-white' : 'text-white/60 hover:text-white'
+                }`}
+              >
+                {g.name}
+                {multi && (
+                  <svg width="9" height="9" viewBox="0 0 10 10" className="opacity-60 transition-transform group-hover/nav:rotate-180">
+                    <path d="M1 3l4 4 4-4" stroke="currentColor" strokeWidth="1.4" fill="none" />
+                  </svg>
+                )}
+                <span
+                  className={`absolute left-0 -bottom-0.5 h-px bg-white transition-all duration-300 ${
+                    isActive ? 'w-full opacity-100' : 'w-0 opacity-0'
+                  }`}
+                />
+              </a>
+
+              {/* Açılır menü (üstüne gelince) */}
+              {multi && (
+                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-1 opacity-0 invisible translate-y-1 group-hover/nav:opacity-100 group-hover/nav:visible group-hover/nav:translate-y-0 transition-all duration-200">
+                  <div className="min-w-48 rounded-2xl border border-white/10 bg-[#0b0b0d] p-2 shadow-2xl">
+                    {g.items.map((s) => (
+                      <a
+                        key={s.id}
+                        href={`#${s.id}`}
+                        onClick={(e) => go(e, s.id)}
+                        className={`block rounded-xl px-4 py-2.5 whitespace-nowrap transition-colors ${
+                          activeId === s.id ? 'bg-white/10 text-white' : 'text-white/65 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        {s.label}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       <div className="flex items-center gap-3">
-        <a href="#specs" onClick={(e) => go(e, 'specs')} className="sg-btn !py-2 !px-4 md:!px-5 !text-sm">
+        <a href="#build" onClick={(e) => go(e, 'build')} className="sg-btn !py-2 !px-4 md:!px-5 !text-sm">
           Buy now
         </a>
 
         <button
           aria-label="Menu"
+          aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
           className="lg:hidden w-9 h-9 flex flex-col items-center justify-center gap-[5px]"
         >
@@ -108,19 +93,35 @@ export default function Navbar() {
         </button>
       </div>
 
+      {/* Mobil menü: gruplar başlık, alt bölümler girintili */}
       {open && (
-        <nav className="lg:hidden absolute top-16 inset-x-0 bg-black/95 border-b border-white/10 flex flex-col px-5 py-2">
-          {LINKS.map((l) => (
-            <a
-              key={l.id}
-              href={`#${l.id}`}
-              onClick={(e) => go(e, l.id, l.offset)}
-              className={`py-4 text-lg font-light border-b border-white/5 last:border-0 ${
-                active === l.id ? 'text-white' : 'text-white/60'
-              }`}
-            >
-              {l.label}
-            </a>
+        <nav className="lg:hidden absolute top-16 inset-x-0 max-h-[calc(100svh-4rem)] overflow-y-auto bg-black/95 border-b border-white/10 flex flex-col px-5 py-2">
+          {GROUPS.map((g) => (
+            <div key={g.name} className="border-b border-white/5 last:border-0 py-1">
+              {g.items.length > 1 ? (
+                <>
+                  <p className={`pt-3 pb-1 sg-eyebrow !text-[0.65rem] ${activeGroup === g.name ? '!text-white' : ''}`}>{g.name}</p>
+                  {g.items.map((s) => (
+                    <a
+                      key={s.id}
+                      href={`#${s.id}`}
+                      onClick={(e) => go(e, s.id)}
+                      className={`block py-2.5 pl-3 text-base font-light ${activeId === s.id ? 'text-white' : 'text-white/60'}`}
+                    >
+                      {s.label}
+                    </a>
+                  ))}
+                </>
+              ) : (
+                <a
+                  href={`#${g.items[0].id}`}
+                  onClick={(e) => go(e, g.items[0].id)}
+                  className={`block py-3 text-lg font-light ${activeGroup === g.name ? 'text-white' : 'text-white/60'}`}
+                >
+                  {g.name}
+                </a>
+              )}
+            </div>
           ))}
         </nav>
       )}
